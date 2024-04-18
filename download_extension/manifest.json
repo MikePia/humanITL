@@ -1,0 +1,20 @@
+{
+    "manifest_version": 3,
+    "name": "Download Manager",
+    "version": "1.0",
+    "permissions": [
+        "downloads"
+    ],
+    "host_permissions": [
+        "http://localhost:5000/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_icon": "icon.png"
+    },
+    "icons": {
+        "48": "icon.png"
+    }
+}
