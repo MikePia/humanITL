@@ -9,6 +9,8 @@ from pdf2image import convert_from_path
 from bs4 import BeautifulSoup
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+logger = logging.getLogger(__name__)
+
 
 def create_prompt(text):
     sector_options = [
@@ -79,28 +81,30 @@ def use_fitz(pdf_path):
         doc.close()
 
 
-
-
 def askgpt_html(html_content):
     """
     Analyze the text from the initial content of an HTML document obtained via Selenium and extract specific information.
     """
     MAXLEN = 2000
     try:
-        soup = BeautifulSoup(html_content, 'html.parser')
-        
+        soup = BeautifulSoup(html_content, "html.parser")
+
         # Extracting text from certain tags, considering them as indicative of initial content
         text_parts = []
-        for tag in soup.find_all(['h1', 'h2', 'p'], limit=10):  # Adjust the limit and tags as per your HTML structure
+        for tag in soup.find_all(
+            ["h1", "h2", "p"], limit=10
+        ):  # Adjust the limit and tags as per your HTML structure
             if tag.text:
                 text_parts.append(tag.text.strip())
-        text = ' '.join(text_parts)
-        
+        text = " ".join(text_parts)
+
         # Check if the extracted text is too long
         if len(text) > MAXLEN:
             text = ""
-            logging.error(f"Extracted HTML text is too long to be a presentation title page. Length: {len(text)}")
-        
+            logging.error(
+                f"Extracted HTML text is too long to be a presentation title page. Length: {len(text)}"
+            )
+
         if not text:
             return None
 
@@ -115,8 +119,11 @@ def askgpt_html(html_content):
         result = json.loads(chat_completion.choices[0].message.content)
         return result
     except Exception as e:
-        logging.error(f"Error processing HTML content with BeautifulSoup or OpenAI: {e}")
+        logging.error(
+            f"Error processing HTML content with BeautifulSoup or OpenAI: {e}"
+        )
         return ""
+
 
 # Example of using this function
 # driver.get(url)
@@ -124,7 +131,7 @@ def askgpt_html(html_content):
 # result = askgpt_html(html_content)
 
 
-def askgpt(pdf_path):
+def askgpt(pdf_path) -> dict | None:
     """
     Analyze the text from the first page of a PDF document and extract specific information.
     """
@@ -133,12 +140,17 @@ def askgpt(pdf_path):
         text1 = use_fitz(pdf_path)
         text2 = use_ocr(pdf_path)
         # sanity check. If this is a presentation title page, It will not be longer than MAXLEN characters (safeguess here)
-        if len(text1) > MAXLEN: 
-            text1 = ""
-            logger.error(f"Text from fitz is too long to be a presentation title page. ({len(text1)})")
+        # But let's put in the first thousand characters in order to try to get some meaningful result
+        if len(text1) > MAXLEN:
+            text1 = text1[:MAXLEN]
+            logger.error(
+                f"Text from fitz is too long to be a presentation title page. ({len(text1)})"
+            )
         if len(text2) > MAXLEN:
-            text2 = ""
-            logger.error(f"Text from tesseract ocr is too long to be a presentation title page., ({len(text2)})")
+            text2 = text2[:MAXLEN]
+            logger.error(
+                f"Text from tesseract ocr is too long to be a presentation title page., ({len(text2)})"
+            )
 
         text = text1 + text2
         if not text:
@@ -156,5 +168,4 @@ def askgpt(pdf_path):
         return result
     except Exception as e:
         print(f"Error processing PDF with fitx, tesseract, or openai: {e}")
-        return ""
-
+        return None

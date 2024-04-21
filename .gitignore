@@ -2,3 +2,4 @@
 *egg-info*
 .vscode/launch.json
 .env
+node_modules*

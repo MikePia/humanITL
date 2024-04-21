@@ -2,10 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="human_in_loop",  # Replace with your package name
-    version="0.1.0",
+    version="0.1.1",
     package_dir={"": "src"},  # Tells setuptools that packages are under src directory
     packages=find_packages(where="src"),  # Find all packages in src
     include_package_data=True,
+    python_requires=">=3.7",
     install_requires=[
         "Flask>=2.0.0",  # Flask web framework
         "pandas",

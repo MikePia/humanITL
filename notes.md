@@ -49,24 +49,52 @@ if __name__ == "__main__":
 ```
 
 
+# The psql copy command
+The data you've extracted looks like it was formatted for viewing in `psql` rather than being structured for easy import into another database. The output includes the row presentation as it appears in `psql`, which is useful for checking content directly in the terminal but not suitable for importing via SQL files.
 
+To properly import this data into your local database, you'll need to export it in a format that can be executed as SQL commands or that can be ingested using tools like PostgreSQL's `COPY` command.
 
+### Creating Import-Friendly SQL Data Files
 
-.
-├── download_extension
-│   ├── background.js
-│   ├── icon.png
-│   └── manifest.json
-├── setup.py
-├── src
-│   ├── appconfig.py
-│   ├── file_mon
-│   │   └── __init__.py
-│   ├── __init__.py
-│   ├── main.py
-│   └── web_batch
-│       ├── app.py
-│       ├── __init__.py
-│       └── templates
-│           └── index.html
+#### 1. Export Using COPY Command
+The `COPY` command in PostgreSQL is useful for exporting and importing data in a plain text format, which is more direct and efficient for database operations than the output format shown. Here’s how you can export your data into a CSV file, which can then be easily imported into another database:
 
+1. **Export Data to CSV Using COPY**:
+   Connect to your production database using `psql` and run the following commands:
+
+   ```sql
+   -- Export 'domains' table data to CSV
+   \copy (SELECT * FROM domains LIMIT 5000) TO 'domains_data.csv' CSV HEADER;
+
+   -- Export 'pdf_links' table data to CSV
+   \copy (SELECT * FROM pdf_links LIMIT 5000) TO 'pdf_links_data.csv' CSV HEADER;
+   ```
+
+   This will create CSV files `domains_data.csv` and `pdf_links_data.csv` with headers, making them suitable for import operations.
+
+#### 2. Import Data From CSV Into Local Database
+Once you have your CSV files, you can import them into your local database using the `COPY` command or `\copy` if you are using `psql`:
+
+1. **Connect to your local database** using `psql`:
+   ```bash
+   psql -U local_username -d local_test_db
+   ```
+
+2. **Import CSV files into the local database**:
+   ```sql
+   -- Import into 'domains'
+   \copy domains FROM 'path_to_your_file/domains_data.csv' CSV HEADER;
+
+   -- Import into 'pdf_links'
+   \copy pdf_links FROM 'path_to_your_file/pdf_links_data.csv' CSV HEADER;
+   ```
+
+### Verify the Import
+After importing the data, verify that the records are correctly imported:
+
+```sql
+SELECT COUNT(*) FROM domains;
+SELECT COUNT(*) FROM pdf_links;
+```
+
+This should reflect the expected number of records (5000 each if all went well).

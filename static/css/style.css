@@ -1,0 +1,11 @@
+/* Add this to your CSS file or within a <style> tag in your HTML */
+.button-clicked {
+    background-color: #4CAF50; /* Green background to indicate click */
+    color: white;              /* White text color */
+}
+
+.button-disabled {
+    background-color: #ccc;    /* Gray background to indicate disabled */
+    color: #666;               /* Dark gray text color */
+    cursor: not-allowed;
+}

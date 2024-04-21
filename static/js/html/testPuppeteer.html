@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Click Test</title>
+    <style>
+        .clicked {
+            background-color: #4CAF50; /* Green */
+            color: white;
+        }
+
+        .disabled {
+            background-color: #ccc;    /* Gray background to indicate disabled */
+            color: #666;               /* Dark gray text color */
+            cursor: not-allowed;
+        }
+
+    </style>
+    <script>
+        function markAsClicked(buttonId) {
+            console.log(buttonId);
+            const button = document.getElementById(buttonId);
+            button.classList.add('clicked');
+            button.textContent = 'Clicked!';
+            console.log(buttonId + ' was clicked'); // Log to console when a button is clicked
+        }
+    </script>
+</head>
+<body>
+    <h1>Click any button</h1>
+    <button id="downloadBtn-1" onclick="markAsClicked(this.id)">Button 1</button>
+    <button id="downloadBtn-2" onclick="markAsClicked(this.id)">Button 2</button>
+    <button id="downloadBtn-3" onclick="markAsClicked(this.id)">Button 3</button>
+    <button id="downloadBtn-4" onclick="markAsClicked(this.id)">Button 4</button>
+    <button id="downloadBtn-5" onclick="markAsClicked(this.id)">Button 5</button>
+    <button id="downloadBtn-6" onclick="markAsClicked(this.id)">Button 6</button>
+    <button id="downloadBtn-7" onclick="markAsClicked(this.id)">Button 7</button>
+    <button id="downloadBtn-8" onclick="markAsClicked(this.id)">Button 8</button>
+    <button id="downloadBtn-9" onclick="markAsClicked(this.id)">Button 9</button>
+    <button id="downloadBtn-10" onclick="markAsClicked(this.id)">Button 10</button>
+
+
+
+</body>
+</html>

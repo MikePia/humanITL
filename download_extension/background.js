@@ -50,24 +50,10 @@ chrome.downloads.onChanged.addListener(changeInfo => {
 });
 
 
-// chrome.downloads.onCompleted.addListener(downloadItem => {
-//     console.log(`Download completed: ${downloadItem.filename} from ${downloadItem.url}`);
-// fetch('https://yourserver.com/api/tag_file', {
-//     method: 'POST',
-//     headers: {
-//         'Content-Type': 'application/json'
-//     },
-//     body: JSON.stringify({
-//         filename: downloadItem.filename,
-//         filePath: downloadItem.fullPath, // or construct the path as needed
-//         url: downloadItem.url
-//     })
-// })
-// .then(response => response.json())
-// .then(data => {
-//     console.log('File tagging initiated:', data);
-// })
-// .catch(error => {
-//     console.error('Error initiating file tagging:', error);
-// });
-// });
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.action === "openTabInBackground") {
+        chrome.tabs.create({ url: request.url, active: false });
+        sendResponse({status: "success"});
+    }
+});

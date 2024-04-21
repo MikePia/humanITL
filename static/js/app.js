@@ -1,20 +1,46 @@
 let currentIndex = 0;
 
-
 function downloadBatch() {
-    console.log("downloadBatch called");
-    const batchSize = parseInt(document.getElementById('batchSize').value);
-    const rows = document.querySelectorAll('#fileList tr');
-    for (let i = currentIndex; i < Math.min(currentIndex + batchSize, rows.length); i++) {
-        // $(rows[i]).find('button').click();
-        rows[i].querySelector('button').click();
+    // Collect all the document IDs to download
+    const ids = Array.from(document.querySelectorAll('.document-button')).map(button => button.dataset.id);
 
-    }
-    currentIndex += batchSize; // Update the current index
-    if (currentIndex >= rows.length) { // Reset if all files are processed
-        currentIndex = 0;
-        alert('All batches have been initiated for download.');
-    }
+    // Define the Flask API endpoint
+    const apiEndpoint = 'http://localhost:5000/click-downloads';
+
+    // Use fetch API to make a POST request
+    fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: ids })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success === false) 
+            alert('Error downloading batch: ' + data.message);
+        else
+            console.log('Batch download initiated:', data);
+    })
+    .catch(error => {
+        console.error('Error initiating batch download:', error);
+    });
+}
+
+function handleDocumentAction(docLink) {
+    // Just navigate to the URL, allowing the browser and extension to handle the specifics
+    window.location.href = docLink;
+}
+
+
+// This function can be used if you choose to call it directly instead of using custom events
+function openLinkInBackgroundTab(url) {
+    chrome.runtime.sendMessage({
+        action: "openTabInBackground",
+        url: url
+    }, function(response) {
+        console.log(response.status);
+    });
 }
 
 
@@ -30,13 +56,11 @@ function loadDocuments() {
             fileList.empty();  // Clear existing entries
             documents.forEach((doc, index) => {
                 const docLink = doc.pdf_link || '#';
-                // Using the index to number the documents for better user tracking
-                const linkText = doc.pdf_link; 
+                const linkText = doc.pdf_link;
 
-                // Append a new row with the document link displayed as a clickable hyperlink
                 fileList.append(`<tr>
                     <td><a href="${docLink}" target="_blank">${linkText}</a></td>
-                    <td><button class="btn btn-sm btn-secondary" onclick="window.open('${docLink}', '_blank')">Download</button></td>
+                    <td><button id="downloadBtn-${index + 1}" class="btn btn-sm btn-secondary" onclick="handleDocumentAction('${docLink}')">Download</button></td>
                 </tr>`);
             });
 
@@ -46,8 +70,6 @@ function loadDocuments() {
         }
     });
 }
-
-
 
 $(document).ready(function() {
     loadDocuments();  // Load documents when the page loads
