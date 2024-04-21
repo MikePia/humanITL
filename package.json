@@ -9,6 +9,7 @@
   "author": "zeroSubstance",
   "license": "Proprietary",
   "dependencies": {
+    "dotenv": "^16.4.5",
     "puppeteer": "^22.6.5"
   }
 }

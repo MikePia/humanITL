@@ -1,8 +1,35 @@
 const puppeteer = require('puppeteer');
+const path = require('path');
+require('dotenv').config();
+
+console.log(process.env.DOWNLOAD_DIRECTORY)
+download_directory = process.env.DOWNLOAD_DIRECTORY
+extension_path = process.env.EXTENSION_PATH
+
+// assert that bot exist
+if (!download_directory || !extension_path) {
+    console.error('Missing environment variables. Exiting puppeteer');
+    process.exit(1);
+}
 
 async function clickButtonsByNumber(url, numButtons) {
     console.log("Just starting");
-    const browser = await puppeteer.launch({ headless: false }); // Run in non-headless for testing
+
+    const extensionPath = path.resolve(__dirname, '../download_extension');
+    const browser = await puppeteer.launch({
+        headless: false,  // Extensions only work in head-full mode.
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            `--plugins.always_open_pdf_externally=true`,            // Automatically download PDFs.
+            `--disable-extensions-except=${extension_path}`,
+            `--load-extension=${extension_path}`,
+            `--download.default_directory=${download_directory}`
+    
+        ]
+    });
+
+
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text())); // Listen to page console logs
 
@@ -25,7 +52,7 @@ async function clickButtonsByNumber(url, numButtons) {
         await new Promise(resolve => setTimeout(resolve, 500)); // Delay for demonstration
     }
 
-    await browser.close();
+    // await browser.close();yyy
 }
 
 const url = process.argv[2];
