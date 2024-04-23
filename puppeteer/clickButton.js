@@ -21,11 +21,13 @@ async function clickButtonsByNumber(url, numButtons) {
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
+            '--disable-web-security',
             `--plugins.always_open_pdf_externally=true`,            // Automatically download PDFs.
+            `--disable-dev-shm-usage`,
+            '--disable-features=IsolateOrigins, site-per-process',
             `--disable-extensions-except=${extension_path}`,
             `--load-extension=${extension_path}`,
             `--download.default_directory=${download_directory}`
-    
         ]
     });
 

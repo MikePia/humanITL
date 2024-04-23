@@ -12,3 +12,13 @@ function openLinkInBackgroundTab(url) {
         console.log(response.status);
     });
 }
+
+
+
+// content_script.js
+chrome.runtime.sendMessage({action: "checkPageType"}, (response) => {
+    if (response.type === 'processHTML') {
+        console.log('Processing HTML content of this page...');
+        // Here you can analyze the HTML, manipulate it or send details back to the background script
+    }
+});

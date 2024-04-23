@@ -57,3 +57,27 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         sendResponse({status: "success"});
     }
 });
+
+
+
+// background.js
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "checkPageType") {
+        chrome.tabs.get(sender.tab.id, function(tab) {
+            if (tab.url.indexOf('http://') === 0 || tab.url.indexOf('https://') === 0) {
+                sendResponse({type: 'processHTML'});
+            } else {
+                sendResponse({type: 'ignore'});
+            }
+        });
+        return true; // Indicates response is asynchronous
+    }
+});
+
+// Optionally use webNavigation or tabs API to detect when new HTML pages are loaded
+chrome.webNavigation.onCompleted.addListener(function(details) {
+    if (details.frameId === 0) { // 0 indicates the navigation is in the main frame
+        console.log('Main HTML page loaded:', details.url);
+        // Additional logic can be applied here if needed
+    }
+});

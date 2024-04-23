@@ -1,12 +1,13 @@
 import logging
-import subprocess
 import appconfig  # noqa: F401
+import os
 
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from tagger import askgpt
+from clickbuttons import automate_browser_actions
 from db_code import fetchPdfLinksForTagging, update_tags, is_link_classified_and_tagged
-import os
+
 
 
 logger = logging.getLogger(__name__)
@@ -45,10 +46,11 @@ def start_batch():
         return jsonify({"error": "No documents found"}), 404
     return jsonify(documents)
 
+
 @app.route("/process-row", methods=["POST"])
 def process_row():
     # Extract filename and URL from the POSTed JSON data
-    print('processing row')
+    print("processing row")
     print(request.json)
     data = request.json
     filename = data.get("filename")
@@ -61,7 +63,9 @@ def process_row():
     # Step 1: Handle tagging based on URL or filename content
     tags = perform_tagging(url, filename)
     if not tags:
-        return jsonify({"error": "Failed to generate tags, The doc may already be tagged"}), 500
+        return jsonify(
+            {"error": "Failed to generate tags, The doc may already be tagged"}
+        ), 500
     else:
         success = update_tags(url, "ready", **tags)
         if not success:
@@ -88,35 +92,14 @@ def perform_tagging(url, filename) -> dict | None:
         return result
 
 
-
 @app.route("/click-downloads", methods=["POST"])
 def click_downloads():
-    return jsonify(success=False, message="Not implemented yet")
     data = request.json
-    ids = data["ids"]
-    url = data["url"]  # Assuming URL is also sent in the POST request
-    logging.info(f"Processing {len(ids)} items")
-
-    # Get an absolute path to the Puppeteer script which is here: <fileDir>/../puppeteer/clickButton.js
-    fileDir = os.path.dirname(os.path.realpath(__file__))
-    puppeteerScriptPath = os.path.abspath(
-        os.path.join(fileDir, "..", "puppeteer", "clickButton.js")
-    )
-
-    # Call Puppeteer script
-    args = ["node", puppeteerScriptPath, url] + ids
-    try:
-        result = subprocess.run(args, capture_output=True, text=True)
-        if result.returncode != 0:
-            logging.error("Error in Puppeteer script:", result.stderr)
-            return jsonify(
-                success=False, message="Failed to process items", error=result.stderr
-            )
-        logging.info("Successfully processed items")
-        return jsonify(success=True, message=f"Processing started for {len(ids)} items")
-    except Exception as e:
-        logging.error(f"Error triggering downloads: {str(e)}")
-        return jsonify(success=False, message=str(e))
+    batch_size = data.get("batch_size", 5)
+    url = os.getenv("FLASK_APP_URL")
+    logging.info(f"Processing {batch_size} items")
+    ids_called = automate_browser_actions(url, batch_size)
+    return jsonify({"ids_called": ids_called})
 
 
 def main():

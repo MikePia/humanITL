@@ -15,7 +15,6 @@
             color: #666;               /* Dark gray text color */
             cursor: not-allowed;
         }
-
     </style>
     <script>
         function markAsClicked(buttonId) {
@@ -23,15 +22,22 @@
             const button = document.getElementById(buttonId);
             button.classList.add('clicked');
             button.textContent = 'Clicked!';
-            console.log(buttonId + ' was clicked'); // Log to console when a button is clicked
+            console.log(buttonId + ' was clicked');
+        }
+
+        function openInNewTab(url) {
+            var win = window.open(url, '_blank');
+            win.focus();
         }
     </script>
 </head>
 <body>
     <h1>Click any button</h1>
-    <button id="downloadBtn-1" onclick="markAsClicked(this.id); window.location.href='https://courses.cs.washington.edu/courses/cse154/19su/resources/assets/cheatsheets/node-cheatsheet.pdf'>Button 1</button>
+    <!-- Button setup to open PDF in a new window/tab -->
+    <button id="downloadBtn-1" onclick="markAsClicked(this.id); openInNewTab('https://courses.cs.washington.edu/courses/cse154/19su/resources/assets/cheatsheets/node-cheatsheet.pdf');">Button 1</button>
 
-    <button id="downloadBtn-2" onclick="markAsClicked(this.id)">Button 2</button>
+    <button id="downloadBtn-2" onclick="markAsClicked(this.id); openInNewTab('https://www.sec.gov/Archives/edgar/data/1854480/000114036123043753/ef20010610_ex99-2.htm');">Button 2</button>
+
     <button id="downloadBtn-3" onclick="markAsClicked(this.id)">Button 3</button>
     <button id="downloadBtn-4" onclick="markAsClicked(this.id)">Button 4</button>
     <button id="downloadBtn-5" onclick="markAsClicked(this.id)">Button 5</button>
@@ -40,8 +46,5 @@
     <button id="downloadBtn-8" onclick="markAsClicked(this.id)">Button 8</button>
     <button id="downloadBtn-9" onclick="markAsClicked(this.id)">Button 9</button>
     <button id="downloadBtn-10" onclick="markAsClicked(this.id)">Button 10</button>
-
-
-
 </body>
 </html>
