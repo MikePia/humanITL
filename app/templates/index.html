@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Download Interface</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Batch Download Documents</h2>
+    <div class="form-group">
+        <label for="batchSize">Batch Size:</label>
+        <input type="number" id="batchSize" class="form-control" value="10" min="1" max="100">
+    </div>
+    <div>
+
+        <button onclick="downloadBatch()" class="btn btn-primary mb-3">Download Next Batch</button>
+        <button onclick="loadDocuments()" class="btn btn-info mb-3">Load Documents</button>
+    </div>
+    <div class="row mb-3">
+        <div class="col">
+            <button onclick="processNext()" class="btn btn-secondary">Process Next</button>
+            <button onclick="clearAll()" class="btn btn-info">Clear</button>
+        </div>
+        <div class="col">
+            <span id="currentCount">1</span>
+        </div>
+    </div>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Document</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="fileList">
+            <!-- Documents will be loaded here dynamically -->
+        </tbody>
+    </table>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+
+</body>
+</html>

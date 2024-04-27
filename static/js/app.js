@@ -61,10 +61,42 @@ function loadDocuments() {
 $(document).ready(function() {
     loadDocuments();  // Load documents when the page loads
 });
-
+    
 
 let currentCount = 1;
 const batchSize = parseInt(document.getElementById('batchSize').value, 10);
+
+function clearAll() {
+    // Define the Flask API endpoint
+    const apiEndpoint = 'http://localhost:5000/clear-all';
+
+    // Use fetch API to make a POST request
+    fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success === false) {
+            alert('Error clearing db: ' + data.message);
+        } else {
+            console.log('Clearing processing initiated:', data);
+
+            // Clear document links and download buttons from the page
+            const fileList = $('#fileList');
+            fileList.empty();  // Clear existing entries
+
+            alert('All documents and links have been cleared.');
+        }
+    })
+    .catch(error => {
+        console.error('Error initiating clear processing:', error);
+    });
+}
+
+
 
 function processNext() {
     if (currentCount <= batchSize) {

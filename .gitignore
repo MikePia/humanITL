@@ -3,3 +3,4 @@
 .vscode/launch.json
 .env
 node_modules*
+Main_errors.log
