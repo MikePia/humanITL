@@ -3,48 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Button Click Test</title>
-    <style>
-        .clicked {
-            background-color: #4CAF50; /* Green */
-            color: white;
-        }
-
-        .disabled {
-            background-color: #ccc;    /* Gray background to indicate disabled */
-            color: #666;               /* Dark gray text color */
-            cursor: not-allowed;
-        }
-    </style>
-    <script>
-        function markAsClicked(buttonId) {
-            console.log(buttonId);
-            const button = document.getElementById(buttonId);
-            button.classList.add('clicked');
-            button.textContent = 'Clicked!';
-            console.log(buttonId + ' was clicked');
-        }
-
-        function openInNewTab(url) {
-            var win = window.open(url, '_blank');
-            win.focus();
-        }
-    </script>
+    <title>Batch Download Interface</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1>Click any button</h1>
-    <!-- Button setup to open PDF in a new window/tab -->
-    <button id="downloadBtn-1" onclick="markAsClicked(this.id); openInNewTab('https://courses.cs.washington.edu/courses/cse154/19su/resources/assets/cheatsheets/node-cheatsheet.pdf');">Button 1</button>
+<div class="container mt-5">
+    <h2>Batch Download Documents</h2>
+    <div class="form-group">
+        <label for="batchSize">Batch Size:</label>
+        <input type="number" id="batchSize" class="form-control" value="10" min="1" max="100">
+    </div>
+    <div>
+        <button onclick="downloadBatch()" id="downloadBtn" class="btn btn-primary mb-3">Download Next Batch</button>
+        <button onclick="loadDocuments()" id="loadBtn" class="btn btn-info mb-3">Load Documents</button>
+    </div>
+    <div class="row mb-3">
+        <div class="col">
+            <button onclick="processNext()" id="processBtn" class="btn btn-secondary">Process Next</button>
+            <button onclick="clearAll()" class="btn btn-info">Clear</button>
+        </div>
+        <div class="col">
+            <span id="currentCount">1</span>
+        </div>
+    </div>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Document</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="fileList">
+            <!-- Documents will be loaded here dynamically -->
+        </tbody>
+    </table>
+</div>
 
-    <button id="downloadBtn-2" onclick="markAsClicked(this.id); openInNewTab('https://www.sec.gov/Archives/edgar/data/1854480/000114036123043753/ef20010610_ex99-2.htm');">Button 2</button>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+    let currentButtonIndex = 1; // Start from the first document
+    let totalButtons = parseInt(document.getElementById('batchSize').value); // Total number of buttons based on batch size
 
-    <button id="downloadBtn-3" onclick="markAsClicked(this.id)">Button 3</button>
-    <button id="downloadBtn-4" onclick="markAsClicked(this.id)">Button 4</button>
-    <button id="downloadBtn-5" onclick="markAsClicked(this.id)">Button 5</button>
-    <button id="downloadBtn-6" onclick="markAsClicked(this.id)">Button 6</button>
-    <button id="downloadBtn-7" onclick="markAsClicked(this.id)">Button 7</button>
-    <button id="downloadBtn-8" onclick="markAsClicked(this.id)">Button 8</button>
-    <button id="downloadBtn-9" onclick="markAsClicked(this.id)">Button 9</button>
-    <button id="downloadBtn-10" onclick="markAsClicked(this.id)">Button 10</button>
+    function loadDocuments() {
+        const batchSize = parseInt(document.getElementById('batchSize').value);
+        totalButtons = batchSize; // Update the total buttons count
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = ''; // Clear existing entries
+        currentButtonIndex = 1; // Reset index for processing next cycle
+
+        for (let i = 0; i < batchSize; i++) {
+            let row = fileList.insertRow();
+            let cell1 = row.insertCell(0);
+            let cell2 = row.insertCell(1);
+            cell1.innerHTML = `Document ${i + 1}`;
+            cell2.innerHTML = `<button id="downloadBtn-${i+1}" class="btn btn-primary" onclick="downloadDocument(this)">Download</button>`;
+        }
+    }
+
+    function downloadDocument(button) {
+        console.log(`Downloading document ${button.id.split('-')[1]}...`);
+        button.style.backgroundColor = '#FFCC00'; // Change the button color to yellow
+        button.innerText = 'Downloading'; // Optional: Update button text
+    }
+
+    function processNext() {
+        if (currentButtonIndex > totalButtons) {
+            document.getElementById('loadBtn').click(); // Reload documents if end of batch reached
+        } else {
+            document.getElementById(`downloadBtn-${currentButtonIndex}`).click(); // Click the next document download button
+            currentButtonIndex++; // Increment to the next button
+        }
+    }
+
+    function downloadBatch() {
+        console.log('Downloading batch...');
+    }
+
+    function clearAll() {
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = ''; // Clear the table
+        console.log('All cleared');
+    }
+</script>
+
 </body>
 </html>

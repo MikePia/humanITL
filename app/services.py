@@ -2,7 +2,11 @@ import logging
 import os
 import pandas as pd
 from flask import jsonify
-from .models import persist
+try:
+    from .models import persist  # When part of the package
+except ImportError:
+    from models import persist   # When run as a standalone script
+
 from db_code import fetchLinksForDCAT, batch_update_db, fetchLinksForTestingHtm, fetchLinksForTestingNoExt
 from clickbuttons import automate_browser_actions
 
@@ -120,5 +124,8 @@ def update_database():
 if __name__ == "__main__":
     url = "http://127.0.0.1:5500/static/js/html/testPuppeteer.html"
 
-    url = "http://localhost:5000/"
+    # url = "http://localhost:5000/"
     automate_browser_actions(url, 10)
+    input("Press Enter to continue...")
+    # automate_browser_actions(url, 10) 
+

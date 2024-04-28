@@ -36,6 +36,12 @@ def automate_browser_actions(url, numBtns):
     try:
         success = []
         driver.get(url)
+        # Place a 10  in the number input with the id batchSize
+        driver.find_element(By.ID, "batchSize").send_keys(numBtns)
+        
+        # Click on the download button with the id downloadBtn
+        driver.find_element(By.ID, "downloadBtn").click()
+        
         for i in range(1, numBtns + 1):
             button_id = f"downloadBtn-{i}"
             try:
@@ -51,5 +57,5 @@ def automate_browser_actions(url, numBtns):
     # Keep the browser open for inspection (remove or modify as needed)
 
     # input("Press Enter to close browser...")
-    driver.quit()
+    # driver.quit()
     return success
