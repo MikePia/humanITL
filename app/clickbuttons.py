@@ -53,10 +53,3 @@ def automate_browser_actions(url, numBtns):
     # input("Press Enter to close browser...")
     driver.quit()
     return success
-
-
-if __name__ == "__main__":
-    url = "http://127.0.0.1:5500/static/js/html/testPuppeteer.html"
-
-    url = "http://localhost:5000/"
-    automate_browser_actions(url, 10)

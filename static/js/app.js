@@ -26,11 +26,33 @@ function downloadBatch() {
 }
 
 function handleDocumentAction(button, docLink) {
-    // Directly initiate an action or download without checking the content type
-    window.location.href = docLink;
+    const pdfExtensions = ['pdf'];
+    const htmlExtensions = ['html', 'htm'];
+    const fileExtension = docLink.split('.').pop().toLowerCase();  // Get the extension and convert it to lowercase
 
     // Change the button color when clicked to indicate an attempt was made to handle the file
     button.style.backgroundColor = '#FFCC00'; // Ruddy yellow color
+
+    // Check and handle based on the file extension
+    if (pdfExtensions.includes(fileExtension)) {
+        // Handle PDF files
+        window.location.href = docLink;
+        console.log("Downloading a PDF document.");
+        button.innerText = "Processing PDF";
+    } else if (htmlExtensions.includes(fileExtension)) {
+        // Handle HTML files
+        console.log("Ignoring html file.");
+        button.innerText = "ignoring  HTML file";
+    } else {
+        // File type is not supported
+        console.log("Could be anything");
+        button.innerText = "In new tab";
+        var newWindow = window.open(docLink, '_blank', 'noopener,noreferrer');
+        if (newWindow) {
+            newWindow.blur();
+            window.focus();
+        }
+    }
 }
 
 
@@ -41,8 +63,10 @@ function loadDocuments() {
         method: 'POST',
         data: { batch_size: batch_size },
         success: function(documents) {
+            console.log("Clearing fileList")
             const fileList = $('#fileList');
             fileList.empty();  // Clear existing entries
+            console.log("Adding new documents to an empty fileList", fileList)
 
             documents.forEach((doc, index) => {
                 const docLink = doc.pdf_link || '#';
@@ -59,7 +83,7 @@ function loadDocuments() {
 }
 
 $(document).ready(function() {
-    loadDocuments();  // Load documents when the page loads
+    // loadDocuments();  // Keep it under control of user to click and set the batch_size
 });
     
 

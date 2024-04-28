@@ -93,6 +93,98 @@ def update_tags(
             conn.close()
 
 
+def fetchLinksForTestingNoExt(batch_size):
+    """Fetching links to download, Classify Tag and Archive."""
+    conn = pg_connect()
+    if conn is None:
+        print("Failed to get database connection")
+        return []
+
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                f"""
+                WITH updated AS (
+                    UPDATE public.pdf_links
+                    SET status = 'in_process'
+                    WHERE id IN (
+                        SELECT id FROM public.pdf_links
+                        WHERE status <> 'in_process'
+                        AND filename_location IS NULL
+                        AND (pdf_link NOT  ILIKE '%.htm' AND pdf_link NOT ILIKE '%.html')
+                        AND pdf_link NOT ILIKE '%.pdf'
+                        ORDER BY RANDOM()
+                        LIMIT {batch_size}
+                    )
+                    RETURNING id, pdf_link, classify, title, sector, author, date, classify_op, filename_location
+                )
+                SELECT * FROM updated;
+                """
+            )
+
+            documents = cur.fetchall()
+            conn.commit()
+            # Turninto pandas dataframe
+            df = pd.DataFrame(documents)
+            return df
+    except psycopg2.Error as e:
+        print(f"Error fetching PDF links for testing htm: {e}")
+        conn.rollback()
+        return []
+    except Exception as e:
+        print(f"Error fetching PDF links for testing htm: {e}")
+        conn.rollback()
+        return []
+    finally:
+        conn.close()
+
+
+
+
+def fetchLinksForTestingHtm(batch_size):
+    """Fetching links to download, Classify Tag and Archive."""
+    conn = pg_connect()
+    if conn is None:
+        print("Failed to get database connection")
+        return []
+
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                f"""
+                WITH updated AS (
+                    UPDATE public.pdf_links
+                    SET status = 'in_process'
+                    WHERE id IN (
+                        SELECT id FROM public.pdf_links
+                        WHERE status <> 'in_process'
+                        AND filename_location IS NULL
+                        AND (pdf_link ILIKE '%.htm' OR pdf_link ILIKE '%.html')
+                        ORDER BY RANDOM()
+                        LIMIT {batch_size}
+                    )
+                    RETURNING id, pdf_link, classify, title, sector, author, date, classify_op, filename_location
+                )
+                SELECT * FROM updated;
+                """
+            )
+
+            documents = cur.fetchall()
+            conn.commit()
+            # Turninto pandas dataframe
+            df = pd.DataFrame(documents)
+            return df
+    except psycopg2.Error as e:
+        print(f"Error fetching PDF links for testing htm: {e}")
+        conn.rollback()
+        return []
+    except Exception as e:
+        print(f"Error fetching PDF links for testing htm: {e}")
+        conn.rollback()
+        return []
+    finally:
+        conn.close()
+
 def fetchLinksForDCAT(batch_size):
     """Fetching links to download, Classify Tag and Archive."""
     conn = pg_connect()
@@ -171,6 +263,7 @@ def fetchPdfLinksForTagging(batch_size):
     finally:
         conn.close()
 
+
 def batch_update_db(dataframe):
     """
     Does a BATCH UPDATE of ["classify", "title", "date", "author", "sector", "status"] columns in pdf_links based on matches to 'pdf_link' in a dataframe.
@@ -190,7 +283,7 @@ def batch_update_db(dataframe):
         return
 
     # Prepare data for update; ensure 'pdf_link' is at the end for WHERE clause matching
-    update_cols = ["classify", "title", "date", "author", "sector", "pdf_link"]
+    update_cols = ["classify", "title", "date", "author", "sector", "filename_location",  "pdf_link"]
     if not all(col in dataframe.columns for col in update_cols):
         error_message = "Dataframe must contain the columns: " + ", ".join(update_cols)
         logging.error(error_message)
@@ -207,15 +300,16 @@ def batch_update_db(dataframe):
     # Prepare the SQL statement
     sql = """
     UPDATE public.pdf_links
-    SET classify = %s, title = %s, date = %s, author = %s, sector = %s
+    SET classify = %s, title = %s, date = %s, author = %s, sector = %s, filename_location = %s, status = 'ready'
     WHERE pdf_link = %s;
     """
-    
+
     # Execute the update
     try:
         cur.executemany(sql, values)
+        count = cur.rowcount
         conn.commit()
-        logging.info("Database update successful.")
+        logging.info(f"Database update successful. Updated {count} rows.")
     except Exception as e:
         conn.rollback()
         logging.error(f"Failed to execute database update: {e}")
@@ -223,6 +317,7 @@ def batch_update_db(dataframe):
         cur.close()
         conn.close()
         logging.info("Database connection closed.")
+
 
 def is_link_classified_and_tagged(pdf_link) -> dict:
     conn = pg_connect()
@@ -288,11 +383,22 @@ def analyze_csv(csv_path):
 
 
 if __name__ == "__main__":
-    csv_path = "docs/ClassifyOpinion.csv"
-    print(os.path.exists(csv_path))
-    print(analyze_csv(csv_path))
-    print()
+    pass
+    # docs = fetchLinksForTestingHtm(10)
+    # print(docs)
+    # csv_path = "docs/ClassifyOpinion.csv"
+    # print(os.path.exists(csv_path))
+    # print(analyze_csv(csv_path))
+    # print()
     # reset_null_tags()
     # link = "https://www.sec.gov/files/sec-office-investor-advocate-report-objectives-fy2021.pdf"
     # od = is_link_classified_and_tagged(link)
     # print(od['classify'] == 1, od['title'] is None)
+
+    # ##################### TODO
+    # This doc causes chrom to ask to keep or not (security reasons)
+    #   http://ir.bauschhealth.com/~/media/Files/V/Valeant-IR/reports-and-presentations/q3-2016-earnings-presentation.pdf
+    #   Test it and fixit later
+    #
+    # THis doc is a page not found-- but it triggers a download process????
+    # 'https://investors.personalis.com/static-files/3c11319a-f39a-4a31-bcd3-1702b82adf4d'
