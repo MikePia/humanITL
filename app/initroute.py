@@ -1,5 +1,5 @@
 from flask import request, render_template
-from .services import process_row, start_batch, clear_all, click_downloads
+from .services import process_row, start_batch, clear_all, click_downloads, handle_html, might_be_pdf
 
 
 def init_routes(app):
@@ -22,3 +22,11 @@ def init_routes(app):
     @app.route("/clear-all", methods=["POST"])
     def clear_all_route():
         return clear_all(request)
+
+    @app.route("/handle-html", methods=["POST"])
+    def handle_html_route():
+        return handle_html(request)
+    
+    @app.route("/might-be-pdf", methods=["POST"])
+    def might_be_pdf_route():
+        return might_be_pdf(request)

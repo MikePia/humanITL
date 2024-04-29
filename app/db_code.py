@@ -264,7 +264,7 @@ def fetchPdfLinksForTagging(batch_size):
         conn.close()
 
 
-def batch_update_db(dataframe):
+def batch_update_db(dataframe) -> int:
     """
     Does a BATCH UPDATE of ["classify", "title", "date", "author", "sector", "status"] columns in pdf_links based on matches to 'pdf_link' in a dataframe.
 
@@ -280,7 +280,7 @@ def batch_update_db(dataframe):
         logging.info("Database connection established.")
     except Exception as e:
         logging.error(f"Failed to connect to the database: {e}")
-        return
+        return 0
 
     # Prepare data for update; ensure 'pdf_link' is at the end for WHERE clause matching
     update_cols = ["classify", "title", "date", "author", "sector", "filename_location",  "pdf_link"]
@@ -295,7 +295,7 @@ def batch_update_db(dataframe):
         logging.info("Data prepared for database update.")
     except Exception as e:
         logging.error(f"Error preparing data: {e}")
-        return
+        return 0
 
     # Prepare the SQL statement
     sql = """
@@ -310,6 +310,7 @@ def batch_update_db(dataframe):
         count = cur.rowcount
         conn.commit()
         logging.info(f"Database update successful. Updated {count} rows.")
+        return count
     except Exception as e:
         conn.rollback()
         logging.error(f"Failed to execute database update: {e}")

@@ -19,22 +19,45 @@ THRESHOLD = 5
 
 
 def process_row(req):
-    print("Processing row")
+    try:
+        print("Processing row") 
+        data = req.json
+
+        # Validate the input
+        filename, url = data.get("filename"), data.get("url")
+        if not filename or not url:
+            return jsonify({"error": "Missing filename or URL"}), 400
+        
+        persist.remove_uncertainty(url)
+
+        # Update prediction and tagging
+        if persist.is_processed(url):
+            return jsonify({"success": False, "message": "Row was already processed previously"}), 200
+        process_document(filename, url)
+
+        # Check if the batch size threshold is met for an update
+        check_batch_update()
+
+        return jsonify({"success": True, "message": "Row processed successfully"})
+    except Exception as e:
+        logger.error(f"Error processing row: {e}")
+        return jsonify({"error": "Flask failed to process row"}), 500
+
+
+def might_be_pdf(req):
     data = req.json
+    print(data)
+    persist.update_classification(data['docLink'], None, 2)
+    persist.set_status(data['docLink'], "processed")
+    persist.set_uncertainty(data['docLink'])
+    return jsonify({"success": True, "message": "Row processed conditionally"})
 
-    # Validate the input
-    filename, url = data.get("filename"), data.get("url")
-    if not filename or not url:
-        return jsonify({"error": "Missing filename or URL"}), 400
 
-    # Update prediction and tagging
-    if persist.is_processed(url):
-        return jsonify({"success": False, "message": "Row was already processed previously"}), 200
-    process_document(filename, url)
-
-    # Check if the batch size threshold is met for an update
-    check_batch_update()
-
+def handle_html(req):
+    data = req.json
+    print(data)
+    persist.update_classification(data['docLink'], None, 2)
+    persist.set_status(data['docLink'], "processed")
     return jsonify({"success": True, "message": "Row processed successfully"})
 
 
@@ -89,6 +112,8 @@ def handle_tagging(url, filename, prediction):
 
 
 def perform_tagging(url, filename, prediction) -> dict:
+    if persist.is_tagged(url):
+        return None
     if (
         prediction not in [1, 3]
         or persist.df.loc[persist.df["pdf_link"] == url, "title"].values[0]
@@ -99,26 +124,22 @@ def perform_tagging(url, filename, prediction) -> dict:
     return askgpt_mix(filename)  # Example: This function must handle the GPT call
 
 
-def update_tags_in_df(url, tags):
-    persist.df.loc[
-        persist.df["pdf_link"] == url, ["title", "date", "author", "sector"]
-    ] = [tags["title"], tags["date"], tags["author"], tags["sector"]]
-
-
 def check_batch_update():
     threshold = THRESHOLD  # Set the threshold for batch updates
     if len(persist.df[persist.df["status"] == "processed"]) >= threshold:
-        update_database()
-        persist.df = pd.DataFrame()  # Reset DataFrame after batch update
+        count = update_database()
 
 
-def update_database():
+
+def update_database() -> int:
     # Filter out processed rows for update
     processed_rows = persist.df[persist.df["status"] == "processed"]
     if not processed_rows.empty:
-        batch_update_db(processed_rows)
+        count = batch_update_db(processed_rows)
         print("Database batch update triggered.")
         persist.remove_processed()
+        return count
+    return 0
 
 
 if __name__ == "__main__":

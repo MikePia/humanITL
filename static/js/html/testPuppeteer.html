@@ -76,6 +76,16 @@
     }
 
     function downloadBatch() {
+        currentButtonIndex = 1;
+        document.getElementById('loadBtn').click(); // Reload documents if end of batch reached
+
+        const batchSize = parseInt(document.getElementById('batchSize').value);
+
+        for (let i = 0; i < batchSize; i++) {
+            document.getElementById(`downloadBtn-${i+1}`).click(); // Click the next document download button
+        }
+
+
         console.log('Downloading batch...');
     }
 

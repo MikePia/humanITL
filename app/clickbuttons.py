@@ -56,6 +56,6 @@ def automate_browser_actions(url, numBtns):
 
     # Keep the browser open for inspection (remove or modify as needed)
 
-    # input("Press Enter to close browser...")
+    input("Press Enter to close browser...")
     # driver.quit()
     return success
