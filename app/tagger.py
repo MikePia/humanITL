@@ -36,9 +36,11 @@ def create_prompt(text):
     # Define the system message with better formatting and clarity
     system_message = (
         "You will analyze the text from the first page of an Investor Presentation document. "
-        "Extract the specific information and return the result as a JSON object with keys: 'title', 'author', 'date', and 'sector'. "
+        "Extract the specific information and return the result in a plain JSON object with keys: 'title', 'author', 'date', and 'sector'. "
         f"Identify the sector from the following list: {', '.join(sector_options)}. "
         "If none of the specific sectors seem to apply, select 'Other' and provide an educated guess after the colon (e.g., 'Other:<guess>'). "
+        "The JSON output should not include any formatting characters, such as Markdown or HTML tags. For example, the correct format should look like this: "
+        "{\"title\": \"Annual Earnings Report\", \"author\": \"Jane Doe\", \"date\": \"January 1, 2020\", \"sector\": \"Finance\"}. "
         "If the text does not contain any of the requested information, leave the corresponding value blank."
     )
 
@@ -143,7 +145,8 @@ def askgpt(pdf_path) -> dict | None:
 def askgpt_mix(pdf_path) -> dict | None:
     """
     This function assumes the investor presentation title page might start later in the document.
-    It identifies the potential title page and then processes it to extract the required information.
+    It identifies the potential title pages and then processes them to extract the required information.
+    It tries different title pages if the initially identified page does not contain a title.
     """
     if not os.path.exists(pdf_path):
         logger.error("PDF path does not exist.")
@@ -151,45 +154,61 @@ def askgpt_mix(pdf_path) -> dict | None:
 
     try:
         doc = fitz.open(pdf_path)
-        tp_num = predict_title_page(doc)
+        tp_nums = predict_title_page(doc, os.getenv("TAGGER_MODEL"), 123)
 
-        if not tp_num:
+        if not tp_nums:
             logger.error("Failed to find a title page in the document.")
             return None
 
         MAXLEN = 2000
 
-        text1 = use_fitz(pdf_path, target_page=tp_num)
-        text2 = use_ocr(pdf_path, target_page=tp_num)
-        # sanity check. If this is a presentation title page, It will not be longer than MAXLEN characters (safeguess here)
-        # But let's put in the first thousand characters in order to try to get some meaningful result
-        if len(text1) > MAXLEN:
-            text1 = text1[:MAXLEN]
-            logger.error(
-                f"Text from fitz is too long to be a presentation title page. ({len(text1)})"
+        # Initialize result placeholder
+        final_result = None
+
+        # Try extracting from up to three most likely title pages
+        for tp_num in tp_nums[:3]:
+            text1 = use_fitz(pdf_path, target_page=tp_num)
+            text2 = use_ocr(pdf_path, target_page=tp_num)
+
+            # Truncate text if it exceeds the maximum length
+            if len(text1) > MAXLEN:
+                text1 = text1[:MAXLEN]
+                logger.error(
+                    f"Text from fitz is too long to be a presentation title page. ({len(text1)})"
+                )
+            if len(text2) > MAXLEN:
+                text2 = text2[:MAXLEN]
+                logger.error(
+                    f"Text from tesseract ocr is too long to be a presentation title page. ({len(text2)})"
+                )
+
+            text = text1 + text2
+            if not text:
+                continue
+
+            messages = create_prompt(text)
+
+            chat_completion = client.chat.completions.create(
+                messages=messages,
+                model="gpt-4-turbo",
+                temperature=0.5,
             )
-        if len(text2) > MAXLEN:
-            text2 = text2[:MAXLEN]
-            logger.error(
-                f"Text from tesseract ocr is too long to be a presentation title page., ({len(text2)})"
-            )
 
-        text = text1 + text2
-        if not text:
-            return None
+            # Attempt to parse the JSON result
+            result = json.loads(chat_completion.choices[0].message.content)
 
-        messages = create_prompt(text)
+            # Check if a title is present, if so, use this result
+            if "title" in result and result["title"].strip():
+                final_result = result
+                break
 
-        chat_completion = client.chat.completions.create(
-            messages=messages,
-            model="gpt-4-turbo",
-            temperature=0.5,
-        )
+        # If no title found in all attempts, default to result from the first page (if any result was produced)
+        if final_result is None and "title" not in result:
+            final_result = result  # This assumes 'result' holds the last attempt; might need adjustment based on your logic
 
-        result = json.loads(chat_completion.choices[0].message.content)
-        return result
+        return final_result
     except Exception as e:
-        print(f"Error processing PDF with fitx, tesseract, or openai: {e}")
+        logger.error(f"Error processing PDF with fitz, tesseract, or openai: {e}")
         return None
 
 
@@ -211,7 +230,20 @@ def create_the_new_tagger():
 
 
 if __name__ == "__main__":
-    create_the_new_tagger()
+    # create_the_new_tagger()
+
+    fnames = [
+        # "/dave/tmp2/0000950123-08-011041.pdf",
+        "/dave/tmp2/0000950123-09-036315.pdf",
+        "/dave/tmp2/0000950134-06-015195.pdf",
+        "/dave/tmp2/0001104659-07-011437.pdf",
+        "/dave/tmp2/0001193125-17-229756.pdf",
+        "/dave/tmp2/0001193125-18-211444.pdf",
+        "/dave/tmp2/0001213900-18-012032.pdf",
+    ]
+    for fname in fnames:
+        askgpt_mix(fname)
+        print
     # iterate_dataSet()
     # result = askgpt_mix("path_to_your_pdf.pdf")
     # print(result)

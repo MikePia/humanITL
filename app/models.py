@@ -33,6 +33,18 @@ class PersistDF:
             return
         self.df.loc[self.df["status"] == "unprocessed", "status"] = "processed"
 
+    def set_done(self):
+        """Change status of processed rows to done"""
+        if self.df.empty:
+            return
+        self.df.loc[self.df["status"] == "processed", "status"] = "done"
+
+    def remove_done(self):
+        # Remove done rows from DataFrame
+        if self.df.empty:
+            return
+        self.df = self.df[self.df["status"] != "done"]
+
     def remove_processed(self):
         # Remove processed rows from DataFrame
         if self.df.empty:
@@ -55,7 +67,13 @@ class PersistDF:
                 return True
 
         return False
-    
+
+    def get_unprocessed(self):
+        # Return rows that have not been processed
+        if self.df.empty:
+            return self.df
+        return self.df[self.df["status"] == "unprocessed"]
+
     def is_tagged(self, url):
         row = self.df[self.df["pdf_link"] == url]
         if row.empty:
@@ -68,6 +86,7 @@ class PersistDF:
         return False
 
     def update_classification(self, url, filename, prediction):
+        """Sets classify and possibly filename_location if prediction is 1 or 3"""
         if self.df.empty or url not in self.df["pdf_link"].values:
             return
         self.df.loc[self.df["pdf_link"] == url, "classify"] = int(prediction)
@@ -75,13 +94,16 @@ class PersistDF:
         # We only want to archive Investor Presentations
         if prediction in [1, 3]:
             self.df.loc[self.df["pdf_link"] == url, "filename_location"] = filename
-            
+
     def set_uncertainty(self, url):
+        # Set uncertainty for a row based on URL, Might be html
         if self.df.empty or url not in self.df["pdf_link"].values:
             return
         self.df.loc[self.df["pdf_link"] == url, "uncertainty"] = True
-        
+
     def remove_uncertainty(self, url):
+        # Its not html, remove uncertainty  classify to None
+
         if self.df.empty or url not in self.df["pdf_link"].values:
             return
         self.df.loc[self.df["pdf_link"] == url, "uncertainty"] = False

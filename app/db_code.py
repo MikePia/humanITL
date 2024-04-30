@@ -3,9 +3,17 @@ import os
 import psycopg2
 import psycopg2.extras
 import pandas as pd
+import sqlite3
 # from psycopg2 import OperationalError
 
 logger = logging.getLogger(__name__)
+
+
+def sqlite_connect():
+    localdb = os.getenv("LOCAL_DB")
+    assert localdb is not None, "Failed to connect to SQLite database"
+    conn = sqlite3.connect(localdb)
+    return conn
 
 
 def pg_connect(working_env=None):
@@ -36,6 +44,34 @@ def pg_connect(working_env=None):
     except psycopg2.OperationalError as e:
         print(f"Error connecting to the database: {e}")
         return None
+
+def update_local_db(pgid, pdf_link, classify, title, status, sector, author, date, filename_location):
+    # Connect to the SQLite database
+    conn = sqlite_connect()
+    cursor = conn.cursor()
+
+    # SQL statement for inserting data, using placeholders for values
+    sql = """
+    INSERT INTO documents (pg_id, pdf_link, classify, title, status, sector, author, date, last_updated, filename_location)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?);
+    """
+
+    # Data tuple contains all values to insert
+    data = (pgid, pdf_link, classify, title, status, sector, author, date, filename_location)
+
+    # Execute the SQL statement with the data
+    cursor.execute(sql, data)
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+    print("Record updated successfully.")
+    
+    
+
+# Call the function with the prepared data
+# insert_record(data_to_insert)
 
 
 def update_tags(
@@ -139,8 +175,6 @@ def fetchLinksForTestingNoExt(batch_size):
         conn.close()
 
 
-
-
 def fetchLinksForTestingHtm(batch_size):
     """Fetching links to download, Classify Tag and Archive."""
     conn = pg_connect()
@@ -185,8 +219,10 @@ def fetchLinksForTestingHtm(batch_size):
     finally:
         conn.close()
 
+
 def fetchLinksForDCAT(batch_size):
-    """Fetching links to download, Classify Tag and Archive."""
+    """Fetching links to download, Classify Tag and Archive. The central database filename_location
+    will not be updated until the file is archived by the bucket launcher"""
     conn = pg_connect()
     if conn is None:
         print("Failed to get database connection")
@@ -283,7 +319,15 @@ def batch_update_db(dataframe) -> int:
         return 0
 
     # Prepare data for update; ensure 'pdf_link' is at the end for WHERE clause matching
-    update_cols = ["classify", "title", "date", "author", "sector", "filename_location",  "pdf_link"]
+    update_cols = [
+        "classify",
+        "title",
+        "date",
+        "author",
+        "sector",
+        "filename_location",
+        "pdf_link",
+    ]
     if not all(col in dataframe.columns for col in update_cols):
         error_message = "Dataframe must contain the columns: " + ", ".join(update_cols)
         logging.error(error_message)
@@ -362,6 +406,23 @@ def reset_null_tags():
         AND classify = 1
         AND title IS NULL
         """
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def reset_unprocessed_links(ids):
+    """Set status to read for the given ids"""
+    conn = pg_connect()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE public.pdf_links
+        SET status = 'ready'
+        WHERE id = ANY(%s)
+        """,
+        (ids,),
     )
     conn.commit()
     cur.close()

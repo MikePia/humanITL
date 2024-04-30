@@ -32,6 +32,7 @@ setup(
         "selenium-wire",
         "beautifulsoup4",
         "joblib",
+        "boto3",
         "celery",
         "redis",
         f"classify @ file://{classify_path}",

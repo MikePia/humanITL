@@ -9,3 +9,9 @@ Is a tool to download Investor Presentations  that are identified in our central
   * Trained model to identify the title page for mix types.
   * openai API  to tag.
 * Archive the files once processed to AWS buckets and update the file_location in the database
+
+
+
+### Running the app
+Chrome must be set to download pdfs
+allow popups

@@ -12,6 +12,7 @@ pdf2image
 pytesseract
 selenium-wire
 beautifulsoup4
+boto3
 celery
 redis
 ../classify_presentations

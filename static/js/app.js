@@ -5,7 +5,7 @@ function downloadBatch() {
 
     function clickButtonSequentially(index) {
         if (index > batchSize) {
-            document.getElementById('loadBtn').click(); // Click 'Load Documents' after last download button
+            // document.getElementById('loadBtn').click(); // Click 'Load Documents' after last download button
             return;
         }
 
