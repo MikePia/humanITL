@@ -444,8 +444,16 @@ def analyze_csv(csv_path):
     df.rename(columns={"LINK": "pdf_link"}, inplace=True)
 
 
+def remove_document_contents():
+    conn = sqlite_connect()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM documents")
+    conn.commit()
+    cur.close()
+    conn.close()
+
 if __name__ == "__main__":
-    pass
+    remove_document_contents()
     # docs = fetchLinksForTestingHtm(10)
     # print(docs)
     # csv_path = "docs/ClassifyOpinion.csv"

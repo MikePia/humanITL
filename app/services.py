@@ -78,8 +78,6 @@ def start_batch(req):
     if len(documents) == 0:
         return jsonify({"error": "No documents found"}), 404
 
-    # if persist.df is not None and not persist.df.empty:
-    #     persist.set_processed()
 
     persist.add_rows(documents)
 
