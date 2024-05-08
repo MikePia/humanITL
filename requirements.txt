@@ -13,8 +13,6 @@ pytesseract
 selenium-wire
 beautifulsoup4
 boto3
-celery
-redis
 ../classify_presentations
 ../train_mix_tagger
 joblib

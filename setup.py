@@ -33,8 +33,6 @@ setup(
         "beautifulsoup4",
         "joblib",
         "boto3",
-        "celery",
-        "redis",
         f"classify @ file://{classify_path}",
         f"tagtrain @ file://{tagger_path}"
     ],
