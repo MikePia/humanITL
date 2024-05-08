@@ -1,9 +1,6 @@
-from datetime import datetime
+from flask import jsonify
 import logging
 import os
-import pandas as pd
-from flask import jsonify
-from threading import Thread, Lock
 import pandas as pd
 
 try:
@@ -12,7 +9,7 @@ except ImportError:
     from models import persist  # When run as a standalone script
 
 
-from db_code import fetchLinksForDCAT, batch_update_db, update_local_db, reset_unprocessed_links
+from db_code import fetchLinksForDCAT, update_local_db, reset_unprocessed_links
 from clickbuttons import automate_browser_actions
 
 from classify.predict import predict
@@ -23,41 +20,87 @@ logger = logging.getLogger(__name__)
 download_dir = os.getenv("DOWNLOAD_DIRECTORY")
 
 
+def register_download(req):
+    data = req.json
+    download_id = data["downloadId"]
+    # url = data["url"]
+    # Store download info; consider using a database for production environments
+    # persist.store_id(download_id, url)
+    return jsonify({"message": "Download registered", "downloadId": download_id}), 200
+
+
 def process_row(req):
+    print("where the fuck is my debugger")
     try:
-        print("Processing row")
         data = req.json
-
-        # Validate the input
         filename, url = data.get("filename"), data.get("url")
+
         if not filename or not url:
-            return jsonify({"error": "Missing filename or URL"}), 400
+            return jsonify(
+                {"success": False, "message": "Missing filename or URL"}
+            ), 400
 
-        persist.remove_uncertainty(url)
+        if not persist.remove_uncertainty(url):
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "URL is not recognized. Remove it from the list",
+                }
+            ), 422
 
-        # Update prediction and tagging
         if persist.is_processed(url):
             return jsonify(
                 {"success": False, "message": "Row was already processed previously"}
-            ), 200
+            ), 409
+
         process_document(filename, url)
-
-        # Check if the batch size threshold is met for an update
-        update_local()
-
-        return jsonify({"success": True, "message": "Row processed successfully"})
+        update_local(url)
+ 
+        return jsonify({"success": True, "message": "Row processed successfully"}), 200
     except Exception as e:
-        logger.error(f"Error processing row: {e}")
-        return jsonify({"error": "Flask failed to process row"}), 500
+        return jsonify(
+            {"success": False, "message": f"Flask failed to process row: {str(e)}"}
+        ), 500
+
+def download_decision(req):
+    try:
+        data = req.json
+        downloads = data.get("downloads", [])
+        # Assuming 'persist' is a pre-defined object handling your data persistence
+        for i, download in enumerate(downloads):
+            row = persist.get_url_row(downloads[i]["url"])  # Make sure this method is defined in your PersistDF or equivalent class
+            if not row or row['status'] == 'done':
+                downloads[i]['action'] = 'delete'
+            else:
+                downloads[i]['action'] = 'download'  # This should be a string indicating the action to take
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500  # Proper error handling
+
+    return jsonify(downloads)  # This ensures the response is in the expected format
+
 
 
 def might_be_pdf(req):
     data = req.json
     print(data)
-    persist.update_classification(data["docLink"], None, 2)
-    persist.set_status(data["docLink"], "processed")
-    persist.set_uncertainty(data["docLink"])
+    url = data["docLink"]
+    if not persist.update_classification(url, None, 2):
+        return jsonify({"success": True, "message": "Row processed conditionally"})
+    persist.set_status(url, "processed")
+    persist.set_uncertainty(url)
+
     return jsonify({"success": True, "message": "Row processed conditionally"})
+
+
+def tab_opened(req):
+    data = req.json
+    url = data["url"]
+    if not persist.update_classification(url, None, 2) or not persist.set_status(
+        url, "processed"
+    ):
+        return jsonify({"message": "Bad request, URL missing"}), 400
+    persist.remove_uncertainty(url)
+    return jsonify({"message": f"Successfully processed URL: {url}"}), 200
 
 
 def handle_html(req):
@@ -69,7 +112,8 @@ def handle_html(req):
 
 
 def start_batch(req):
-    batch_size = req.form.get("batch_size", 3, type=int)
+    data = req.json
+    batch_size = data.get("batch_size")
     clear_all(None)
     documents = fetchLinksForDCAT(batch_size=batch_size)
     # documents = fetchLinksForTestingHtm(batch_size=batch_size)
@@ -77,7 +121,6 @@ def start_batch(req):
 
     if len(documents) == 0:
         return jsonify({"error": "No documents found"}), 404
-
 
     persist.add_rows(documents)
 
@@ -92,13 +135,11 @@ def clear_all(req):
     if unprocessed.empty:
         persist.reset()
         return jsonify({"success": True})
-    reset_unprocessed_links(unprocessed['id'].to_list())
+    reset_unprocessed_links(unprocessed["id"].to_list())
     persist.reset()
     return jsonify({"success": True})
-    
-    
+
     # persist.set_processed()
-    # update_local()
     return jsonify({"success": True})
 
 
@@ -140,18 +181,38 @@ def perform_tagging(url, filename, prediction) -> dict:
     return askgpt_mix(filename)  # Example: This function must handle the GPT call
 
 
-def update_local():
-    archive_docs()
-    persist.set_done()
+def update_local(url=None):
+    archive_docs(url)
+    persist.set_done(url)
 
 
-def archive_docs():
+def archive_docs(url=None):
     try:
-        local_archive_these = persist.get_processed()
+        if url:
+            row_data = persist.get_url_row(url)
+            local_archive_these = (
+                row_data.to_frame().T
+                if isinstance(row_data, pd.Series)
+                else pd.DataFrame()
+            )
+        else:
+            local_archive_these = persist.get_processed()
+
         if local_archive_these.empty:
             return
+
         for i, row in local_archive_these.iterrows():
-            update_local_db(row['id'], row['pdf_link'], row['classify'], row['title'], row['status'], row['sector'], row['author'], row['date'], row['filename_location'])
+            update_local_db(
+                row["id"],
+                row["pdf_link"],
+                row["classify"],
+                row["title"],
+                row["status"],
+                row["sector"],
+                row["author"],
+                row["date"],
+                row["filename_location"],
+            )
 
     except Exception as e:
         print(f"Error uploading files: {e}")

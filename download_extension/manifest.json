@@ -1,17 +1,20 @@
 {
     "manifest_version": 3,
     "name": "Download Manager",
-    "version": "1.0",
+    "version": "1.1.0",
     "permissions": [
         "downloads",
         "tabs",
         "activeTab",
-        "webNavigation"  // Added webNavigation permission
+        "webNavigation" 
     ],
     "host_permissions": [
         "http://localhost:5000/*",
-        "*://*/*"  // Added to access all URLs
+        "*://*/*"  
     ],
+    "externally_connectable": {
+        "matches": [ "http://localhost:5000/*"]
+    },
     "background": {
         "service_worker": "background.js"
     },
@@ -20,7 +23,7 @@
     },
     "content_scripts": [
         {
-            "matches": ["<all_urls>"],  // Ensures content scripts are injected in all pages
+            "matches": ["<all_urls>"],
             "js": ["content_script.js"]
         }
     ]

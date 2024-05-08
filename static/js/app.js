@@ -87,31 +87,43 @@ function handleDocumentAction(button, docLink) {
     }
 }
 
-
 function loadDocuments() {
     const batch_size = parseInt(document.getElementById('batchSize').value);
+    const apiEndpoint = 'http://localhost:5000/start-batch';
     currentCount = 1;
-    $.ajax({
-        url: '/start-batch',
-        method: 'POST',
-        data: { batch_size: batch_size },
-        success: function(documents) {
-            console.log("Clearing fileList")
-            const fileList = $('#fileList');
-            fileList.empty();  // Clear existing entries
-            console.log("Adding new documents to an empty fileList", fileList)
 
-            documents.forEach((doc, index) => {
-                const docLink = doc.pdf_link || '#';
-                fileList.append(`<tr>
-                    <td><a href="${docLink}" target="_blank">${docLink}</a></td>
-                    <td><button id="downloadBtn-${index + 1}" class="btn btn-sm btn-secondary" onclick="handleDocumentAction(this, '${docLink}')">Download</button></td>
-                </tr>`);
-            });
+    fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',  // Set Content-Type to application/json
         },
-        error: function() {
-            alert('Failed to load documents');
+        body: JSON.stringify({ batch_size: batch_size })  // Convert the JavaScript object to a JSON string
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();  // Parse JSON from the response
+        } else {
+            throw new Error('Failed to load documents');
         }
+    })
+    .then(documents => {
+        console.log("Clearing fileList");
+        const fileList = $('#fileList');
+        fileList.empty();  // Clear existing entries
+        console.log("Adding new documents to an empty fileList", fileList);
+
+        documents.forEach((doc, index) => {
+            const docLink = doc.pdf_link || '#';
+            fileList.append(`<tr>
+                <td><a href="${docLink}" target="_blank">${docLink}</a></td>
+                <td><button id="downloadBtn-${index + 1}" class="btn btn-sm btn-secondary" onclick="handleDocumentAction(this, '${docLink}')">Download</button></td>
+            </tr>`);
+        });
+
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
     });
 }
 

@@ -9,11 +9,27 @@ import sqlite3
 logger = logging.getLogger(__name__)
 
 
-def sqlite_connect():
-    localdb = os.getenv("LOCAL_DB")
-    assert localdb is not None, "Failed to connect to SQLite database"
-    conn = sqlite3.connect(localdb)
-    return conn
+def sqlite_connect(working_env=None):
+    if not working_env:
+        working_env = os.getenv("WORKING_ENV")
+    try:
+        if working_env == "production":
+            localdb = os.getenv("LOCAL_DB")
+            assert localdb is not None, "Failed to connect to SQLite database"
+            conn = sqlite3.connect(localdb)
+            return conn
+        elif working_env == "development":
+            localdb = os.getenv("LOCAL_TEST_DB")
+            assert localdb is not None, "Failed to connect to SQLite database"
+            conn = sqlite3.connect(localdb)
+            return conn
+        else:
+            print("Invalid working environment")
+            logger.warning(f"Invalid working environment: {working_env}")
+            return None
+    except sqlite3.OperationalError as e:
+        print(f"Error connecting to the SQLite database: {e}")
+        return None
 
 
 def pg_connect(working_env=None):
@@ -45,7 +61,10 @@ def pg_connect(working_env=None):
         print(f"Error connecting to the database: {e}")
         return None
 
-def update_local_db(pgid, pdf_link, classify, title, status, sector, author, date, filename_location):
+
+def update_local_db(
+    pgid, pdf_link, classify, title, status, sector, author, date, filename_location
+):
     # Connect to the SQLite database
     conn = sqlite_connect()
     cursor = conn.cursor()
@@ -57,7 +76,17 @@ def update_local_db(pgid, pdf_link, classify, title, status, sector, author, dat
     """
 
     # Data tuple contains all values to insert
-    data = (pgid, pdf_link, classify, title, status, sector, author, date, filename_location)
+    data = (
+        pgid,
+        pdf_link,
+        classify,
+        title,
+        status,
+        sector,
+        author,
+        date,
+        filename_location,
+    )
 
     # Execute the SQL statement with the data
     cursor.execute(sql, data)
@@ -67,8 +96,7 @@ def update_local_db(pgid, pdf_link, classify, title, status, sector, author, dat
     conn.close()
 
     print("Record updated successfully.")
-    
-    
+
 
 # Call the function with the prepared data
 # insert_record(data_to_insert)
@@ -452,8 +480,25 @@ def remove_document_contents():
     cur.close()
     conn.close()
 
+def get_pdf_links_as_CSV():
+    import csv
+    conn = pg_connect()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM public.pdf_links")
+    rows = cur.fetchall()
+    # Write csv file
+    with open("pdf_links.csv", "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["id", "pdf_link", "classify", "title", "sector", "author", "date",])
+        writer.writerows(rows)
+        
+    
+
+
+
 if __name__ == "__main__":
-    remove_document_contents()
+    get_pdf_links_as_CSV()
+    # remove_document_contents()
     # docs = fetchLinksForTestingHtm(10)
     # print(docs)
     # csv_path = "docs/ClassifyOpinion.csv"
