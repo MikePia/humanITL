@@ -1,4 +1,4 @@
-# Human in the Loop
+# Human in the Loop, MVP stauts
 ## For Betterpitch
 Is a mostly automated  tool to download Investor Presentations  that are identified in our central database and use Chrome to download them. It is remarkably effective compared to using any completely automated tool and much faster.
 
@@ -22,5 +22,5 @@ Set up the environment in .env
 Chrome must be set to download pdfs and allow popups
 * Start the archiver *bucket launch*
 * Start flask
-* navigate to localhost:5000
+* navigate to localhost:5000 in Chrome
 * Click on Load Documnents
